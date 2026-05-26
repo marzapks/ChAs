@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<title>ChordAssist - Neon Chord Synth</title>
+<style>
+  :root{
+    --bg:#02020a;
+    --panel:#080816f2;
+    --panel2:#10102aee;
+    --text:#eaffff;
+    --muted:#9ec8d8;
+    --cyan:#18f7ff;
+    --pink:#ff3bd5;
+    --violet:#8b5cff;
+    --gold:#ffd463;
+    --green:#5cff9d;
+    --red:#ff4f77;
+    --blue:#5ca9ff;
+    --shadow-cyan:0 0 8px rgba(24,247,255,.85),0 0 22px rgba(24,247,255,.38);
+    --shadow-pink:0 0 8px rgba(255,59,213,.8),0 0 24px rgba(255,59,213,.34);
+    --shadow-gold:0 0 8px rgba(255,212,99,.8),0 0 20px rgba(255,212,99,.28);
+    --radius:18px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; min-height:100%; background:var(--bg); color:var(--text); font-family:"Trebuchet MS", "Lucida Console", Monaco, monospace; overscroll-behavior:none; touch-action:manipulation; user-select:none;}
+  body::before{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:-3;
+    background:
+      radial-gradient(circle at 18% 10%, rgba(139,92,255,.28), transparent 30%),
+      radial-gradient(circle at 80% 8%, rgba(24,247,255,.18), transparent 36%),
+      radial-gradient(circle at 50% 100%, rgba(255,59,213,.15), transparent 45%),
+      #02020a;
+  }
+  body::after{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:1000; opacity:.14;
+    background:repeating-linear-gradient(to bottom, rgba(255,255,255,.06) 0 1px, transparent 1px 4px);
+    mix-blend-mode:screen;
+  }
+  button,input,select{font:inherit; color:var(--text);}
+  .hidden{display:none!important;}
+  .home{min-height:100dvh; display:grid; place-items:center; padding:clamp(18px,4vw,48px); position:relative; overflow:hidden;}
+  .home::before{
+    content:""; position:absolute; inset:-20%; opacity:.24; pointer-events:none;
+    background-image:linear-gradient(rgba(24,247,255,.14) 1px, transparent 1px),linear-gradient(90deg, rgba(255,59,213,.13) 1px, transparent 1px);
+    background-size:42px 42px;
+    transform:perspective(700px) rotateX(58deg) translateY(18%);
+    animation:gridDrift 8s linear infinite;
+  }
+  @keyframes gridDrift{from{background-position:0 0,0 0}to{background-position:0 42px,42px 0}}
+  .homeCard{width:min(860px,96vw); padding:clamp(28px,5vw,64px); border:2px solid rgba(24,247,255,.55); border-radius:28px; background:linear-gradient(145deg, rgba(5,5,20,.92), rgba(20,8,40,.86)); box-shadow:var(--shadow-cyan), inset 0 0 40px rgba(139,92,255,.18); text-align:center; position:relative; overflow:hidden;}
+  .homeCard::after{content:""; position:absolute; inset:0; background:linear-gradient(120deg,transparent 0 44%,rgba(255,255,255,.15) 48%,transparent 52% 100%); transform:translateX(-130%); animation:sheen 5s ease-in-out infinite; pointer-events:none;}
+  @keyframes sheen{0%,50%{transform:translateX(-130%)}75%,100%{transform:translateX(130%)}}
+  .title{font-size:clamp(42px,10vw,118px); letter-spacing:.05em; line-height:.92; margin:0 0 12px; color:#fff; text-shadow:3px 3px 0 #26104b, 6px 6px 0 #05020d, var(--shadow-cyan), var(--shadow-pink); filter:drop-shadow(0 0 22px rgba(24,247,255,.38)); animation:glitchText 2.6s infinite steps(1);}
+  @keyframes glitchText{0%,92%,100%{transform:translate(0)}94%{transform:translate(-2px,1px)}96%{transform:translate(2px,-1px)}}
+  .subtitle{margin:0 auto 30px; color:var(--muted); max-width:680px; line-height:1.5; font-size:clamp(13px,2.2vw,18px);}
+  .launchBtn{position:relative; border:2px solid var(--gold); background:linear-gradient(180deg, rgba(255,212,99,.26), rgba(255,59,213,.12)); color:#fff; padding:18px 32px; border-radius:18px; min-width:min(360px,78vw); font-size:clamp(18px,4vw,28px); cursor:pointer; box-shadow:var(--shadow-gold); text-transform:uppercase; letter-spacing:.12em;}
+  .launchBtn:active{transform:translateY(2px) scale(.99)}
+  .app{height:100dvh; display:flex; flex-direction:column; overflow:hidden; background:linear-gradient(180deg,#02020a,#060611 60%,#02020a);}
+  .topbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:10px max(10px,env(safe-area-inset-left)) 8px; border-bottom:1px solid rgba(24,247,255,.24); background:rgba(1,1,8,.92); box-shadow:0 4px 28px rgba(0,0,0,.45); z-index:10;}
+  .brand{font-weight:900; letter-spacing:.12em; color:#fff; text-shadow:var(--shadow-cyan); margin-right:auto; font-size:clamp(16px,2.4vw,24px);}
+  .statusPill{border:1px solid rgba(24,247,255,.45); border-radius:999px; padding:7px 11px; color:var(--muted); background:rgba(24,247,255,.06); font-size:12px; white-space:nowrap;}
+  .tinyBtn,.neonBtn,.rootBtn,.chipBtn,.padBtn,.iconBtn{border:1px solid rgba(24,247,255,.45); background:linear-gradient(180deg, rgba(24,247,255,.15), rgba(139,92,255,.09)); border-radius:12px; padding:9px 12px; cursor:pointer; box-shadow:0 0 0 transparent; transition:.12s ease; touch-action:manipulation;}
+  .tinyBtn{font-size:12px; padding:7px 9px;}
+  .neonBtn:hover,.tinyBtn:hover,.rootBtn:hover,.chipBtn:hover,.padBtn:hover,.iconBtn:hover,.activeGlow{border-color:var(--cyan); box-shadow:var(--shadow-cyan); color:#fff;}
+  .warnGlow{border-color:var(--pink)!important; box-shadow:var(--shadow-pink)!important; color:#fff!important;}
+  .goldGlow{border-color:var(--gold)!important; box-shadow:var(--shadow-gold)!important; color:#fff!important;}
+  .appBody{flex:1; min-height:0; overflow:auto; padding:12px clamp(8px,2vw,22px) max(18px,env(safe-area-inset-bottom)); display:grid; grid-template-columns:minmax(300px, 1.1fr) minmax(300px, .9fr); gap:12px;}
+  .stage,.side{min-width:0; display:flex; flex-direction:column; gap:12px;}
+  .panel{background:linear-gradient(180deg, rgba(9,9,28,.95), rgba(8,8,20,.92)); border:1px solid rgba(24,247,255,.28); border-radius:var(--radius); box-shadow:inset 0 0 28px rgba(139,92,255,.08), 0 0 24px rgba(0,0,0,.35); overflow:hidden;}
+  .panelHeader{display:flex; align-items:center; gap:10px; padding:12px 14px; cursor:pointer; background:linear-gradient(90deg, rgba(24,247,255,.11), rgba(255,59,213,.07)); border-bottom:1px solid rgba(24,247,255,.16);}
+  .panelHeader h2{font-size:15px; letter-spacing:.08em; text-transform:uppercase; margin:0; text-shadow:var(--shadow-cyan);}
+  .panelHeader .arrow{margin-left:auto; opacity:.9;}
+  .panelContent{padding:14px; display:block;}
+  .panel.collapsed .panelContent{display:none;}
+  .panel.collapsed .arrow{transform:rotate(-90deg);}
+  .hint{font-size:12px; color:var(--muted); line-height:1.45; margin:6px 0 10px;}
+  .pianoWrap{padding:14px;}
+  .pianoTop{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px;}
+  .readout{padding:8px 10px; border:1px solid rgba(255,212,99,.42); color:#fff7ca; background:rgba(255,212,99,.06); border-radius:12px; min-height:36px; box-shadow:inset 0 0 16px rgba(255,212,99,.08); font-size:12px;}
+  .pianoViewport{width:100%; overflow:hidden; border-radius:18px; border:2px solid rgba(24,247,255,.28); box-shadow:var(--shadow-cyan), inset 0 0 30px rgba(0,0,0,.6); background:#05050a; padding:12px 10px 16px;}
+  .piano{position:relative; height:clamp(160px,28vh,285px); min-height:160px; width:100%; isolation:isolate;}
+  .whiteKey,.blackKey{position:absolute; bottom:0; border-radius:0 0 12px 12px; cursor:pointer; display:flex; align-items:flex-end; justify-content:center; padding-bottom:10px; font-size:12px; font-weight:900; touch-action:none;}
+  .whiteKey{height:100%; background:linear-gradient(180deg, #fff, #cfd5ec 78%, #8d99bd); border:1px solid #6c77a6; color:#0a0a12; box-shadow:inset 0 -12px 20px rgba(0,0,0,.22); z-index:1;}
+  .blackKey{height:62%; background:linear-gradient(180deg, #111529, #010104 76%); border:1px solid rgba(24,247,255,.38); color:#dff; box-shadow:0 8px 20px rgba(0,0,0,.7), 0 0 14px rgba(24,247,255,.18); z-index:3; padding-bottom:8px;}
+  .whiteKey.playing,.blackKey.playing{filter:brightness(1.25); box-shadow:var(--shadow-gold), inset 0 0 22px rgba(255,212,99,.55);}
+  .whiteKey.buildSelected,.blackKey.buildSelected{outline:3px solid var(--pink); box-shadow:var(--shadow-pink), inset 0 0 18px rgba(255,59,213,.35);}
+  .whiteKey.chordPreview,.blackKey.chordPreview{outline:3px solid var(--cyan); box-shadow:var(--shadow-cyan), inset 0 0 14px rgba(24,247,255,.28);}
+  .rootStrip,.chipGrid,.presetGrid,.sliderGrid,.buttonRow{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+  .rootBtn{min-width:46px; padding:9px 10px; text-align:center;}
+  .chipBtn{font-size:12px; padding:9px 10px; text-align:left;}
+  .chipBtn strong{display:block; font-size:12px; color:#fff;}
+  .chipBtn span{display:block; color:var(--muted); font-size:10px; margin-top:3px;}
+  .presetGrid{display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px;}
+  .presetBtn{text-align:left; justify-content:flex-start; min-height:62px;}
+  .presetBtn .small{display:block; color:var(--muted); font-size:10px; margin-top:4px; line-height:1.25;}
+  .bankTabs{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:10px;}
+  .bankTabs .chipBtn{text-align:center;}
+  .sliderGrid{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px;}
+  .sliderBox{border:1px solid rgba(24,247,255,.18); border-radius:14px; padding:10px; background:rgba(255,255,255,.025);}
+  .sliderBox label{display:flex; justify-content:space-between; gap:8px; font-size:12px; color:var(--muted); margin-bottom:8px;}
+  input[type=range]{width:100%; accent-color:#18f7ff; cursor:pointer;}
+  select,input[type=text],input[type=number]{background:rgba(0,0,0,.45); border:1px solid rgba(24,247,255,.35); border-radius:10px; padding:8px 10px; outline:none; min-width:0;}
+  .chordList{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; max-height:280px; overflow:auto; padding-right:4px;}
+  .padGrid{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px;}
+  .padBtn{min-height:78px; text-align:left; padding:10px; background:linear-gradient(180deg, rgba(255,59,213,.11), rgba(24,247,255,.08)); position:relative; overflow:hidden;}
+  .padBtn::after{content:""; position:absolute; inset:0; background:linear-gradient(120deg,transparent,rgba(255,255,255,.07),transparent); transform:translateX(-120%); transition:.22s;}
+  .padBtn:active::after{transform:translateX(120%)}
+  .padNum{font-size:11px; color:var(--gold); display:block;}
+  .padName{display:block; font-size:12px; line-height:1.25; margin-top:5px;}
+  .mini{font-size:11px; color:var(--muted); line-height:1.35;}
+  .twoCol{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .layoutList{display:grid; gap:8px; max-height:210px; overflow:auto;}
+  .layoutItem{border:1px solid rgba(24,247,255,.22); border-radius:14px; padding:10px; background:rgba(24,247,255,.04); display:grid; gap:8px;}
+  canvas{max-width:100%; border-radius:14px; border:1px solid rgba(24,247,255,.25); background:#02020a; box-shadow:inset 0 0 20px rgba(0,0,0,.6);}
+  .bendBox{display:grid; grid-template-columns:96px 1fr; gap:14px; align-items:center;}
+  .wheel{height:210px; width:84px; border:2px solid rgba(24,247,255,.38); border-radius:999px; background:linear-gradient(180deg, rgba(24,247,255,.13), rgba(255,59,213,.08)); box-shadow:var(--shadow-cyan), inset 0 0 20px rgba(0,0,0,.8); position:relative; touch-action:none; margin:auto;}
+  .wheel::before{content:""; position:absolute; left:50%; top:10px; bottom:10px; width:2px; transform:translateX(-50%); background:linear-gradient(var(--pink), var(--cyan)); opacity:.45;}
+  .wheelHandle{position:absolute; left:50%; top:50%; width:58px; height:34px; border:2px solid var(--gold); border-radius:14px; transform:translate(-50%,-50%); background:rgba(255,212,99,.18); box-shadow:var(--shadow-gold);}
+  .kbdTable{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px;}
+  .kbdLine{display:flex; justify-content:space-between; gap:8px; border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:8px; background:rgba(255,255,255,.025); font-size:12px;}
+  .kbdLine kbd{color:var(--gold); font-weight:900;}
+  .hideDot{position:fixed; right:10px; top:54px; width:28px; height:28px; border:1px solid rgba(255,255,255,.14); border-radius:50%; background:rgba(190,190,190,.23); opacity:.36; z-index:20; cursor:pointer;}
+  .uiHidden .side,.uiHidden .topbar .tinyBtn,.uiHidden .topbar .statusPill{display:none!important;}
+  .uiHidden .appBody{grid-template-columns:1fr;}
+  .uiHidden .topbar{justify-content:center;}
+  .uiHidden .brand{margin:0;}
+  @media (max-width: 980px){
+    .appBody{grid-template-columns:1fr; overflow:auto;}
+    .side{display:grid; grid-template-columns:1fr;}
+    .presetGrid{grid-template-columns:repeat(2,minmax(0,1fr));}
+    .chordList{grid-template-columns:1fr; max-height:340px;}
+  }
+  @media (max-width: 620px){
+    .topbar{gap:6px;}
+    .brand{width:100%; text-align:center; margin:0;}
+    .statusPill{font-size:10px; padding:6px 8px;}
+    .bankTabs{grid-template-columns:repeat(2,1fr);}
+    .sliderGrid,.twoCol,.kbdTable{grid-template-columns:1fr;}
+    .padGrid{grid-template-columns:repeat(2,minmax(0,1fr));}
+    .presetGrid{grid-template-columns:1fr;}
+    .rootBtn{min-width:40px; padding:8px 7px;}
+    .piano{height:205px;}
+    .whiteKey,.blackKey{font-size:10px;}
+  }
+</style>
+</head>
+<body>
+  <section id="home" class="home">
+    <div class="homeCard">
+      <h1 class="title">ChordAssist</h1>
+      <p class="subtitle">Neon chord-builder, synth piano, pad bank, Bluetooth-keyboard performance station, and PNG chord-layout exporter.</p>
+      <button id="launch" class="launchBtn">Launch Synth</button>
+    </div>
+  </section>
+
+  <section id="app" class="app hidden" aria-label="ChordAssist Synth App">
+    <div class="topbar">
+      <div class="brand">ChordAssist</div>
+      <div id="soundStatus" class="statusPill">Sound: waiting</div>
+      <div id="chordStatus" class="statusPill">Chord-Key: off</div>
+      <div id="buildStatus" class="statusPill">Build: off</div>
+      <button id="homeBtn" class="tinyBtn">Home</button>
+      <button id="fullBtn" class="tinyBtn">Fullscreen</button>
+      <button id="panicBtn" class="tinyBtn warnGlow">All Notes Off</button>
+    </div>
+    <button id="hideDot" class="hideDot" title="Hide / show UI panels"></button>
+    <div class="appBody">
+      <main class="stage">
+        <section class="panel pianoWrap">
+          <div class="pianoTop">
+            <button id="toggleChordKey" class="neonBtn">Chord-Key Mode</button>
+            <button id="toggleBuild" class="neonBtn">Build Mode</button>
+            <button id="clearBuild" class="neonBtn">Clear Build</button>
+            <button id="saveBuild" class="neonBtn goldGlow">Save Highlighted Keys</button>
+            <span id="nowPlaying" class="readout">Ready. Tap a key or use Bluetooth keyboard keys A W S E D F...</span>
+          </div>
+          <div class="pianoViewport">
+            <div id="piano" class="piano"></div>
+          </div>
+        </section>
+
+        <section id="padsPanel" class="panel">
+          <div class="panelHeader"><h2>Chord Pads</h2><span class="arrow">▼</span></div>
+          <div class="panelContent">
+            <p class="hint">Tap a pad to play it. Turn on Assign Mode, then tap a pad to load the current chord shape. Keys 1–8 trigger the visible pad page.</p>
+            <div class="buttonRow" style="margin-bottom:10px">
+              <button id="assignPad" class="neonBtn">Assign Mode: Off</button>
+              <button id="prevPadPage" class="neonBtn">◀ Page</button>
+              <button id="nextPadPage" class="neonBtn">Page ▶</button>
+              <span id="padPageReadout" class="readout">Pads 1–8</span>
+            </div>
+            <div id="padGrid" class="padGrid"></div>
+          </div>
+        </section>
+
+        <section id="savedPanel" class="panel">
+          <div class="panelHeader"><h2>Saved Key Layout Bank + PNG Export</h2><span class="arrow">▼</span></div>
+          <div class="panelContent">
+            <p class="hint">Saved builds preserve exactly which piano keys you highlighted. View the layout below, play it back, assign it to a pad, or download the layout image as a PNG.</p>
+            <div class="twoCol">
+              <div>
+                <div id="layoutList" class="layoutList"></div>
+              </div>
+              <div>
+                <canvas id="layoutCanvas" width="1000" height="420"></canvas>
+                <div class="buttonRow" style="margin-top:10px">
+                  <button id="downloadPng" class="neonBtn goldGlow">Download Layout PNG</button>
+                  <button id="assignLayoutToPad" class="neonBtn">Assign Viewed Layout to Pad</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <aside class="side">
+        <section id="soundPanel" class="panel">
+          <div class="panelHeader"><h2>Sound Banks: 60 Presets</h2><span class="arrow">▼</span></div>
+          <div class="panelContent">
+            <p class="hint">Artist references describe the tonal inspiration and harmonic world. These are original Web Audio synth patches, not sampled emulations.</p>
+            <div id="bankTabs" class="bankTabs"></div>
+            <div id="presetGrid" class="presetGrid"></div>
+          </div>
+        </section>
+
+        <section id="chordPanel" class="panel">
+          <div class="panelHeader"><h2>Chord Bank + Chord-Key Shape</h2><span class="arrow">▼</span></div>
+          <div class="panelContent">
+            <p class="hint">Choose a root note, then choose a chord. In Chord-Key Mode, that same chord shape maps across every piano key and Bluetooth keyboard note.</p>
+            <div id="rootStrip" class="rootStrip"></div>
+            <div class="buttonRow" style="margin:10px 0">
+              <button id="playCurrentChord" class="neonBtn goldGlow">Play Current Chord</button>
+              <button id="setShapeOnly" class="neonBtn">Use Shape Across Keyboard</button>
+            </div>
+            <div id="currentChord" class="readout">Current chord: C Major 9</div>
+            <div id="chordList" class="chordList" style="margin-top:10px"></div>
+          </div>
+        </section>
+
+        <section id="designPanel" class="panel collapsed">
+          <div class="panelHeader"><h2>Synth Design Knobs + Sliders</h2><span class="arrow">▼</span></div>
+          <div class="panelContent">
+            <div id="synthSliders" class="sliderGrid"></div>
+          </div>
+        </section>
+
+        <section id="fxPanel" class="panel collapsed">
+          <div class="panelHeader"><h2>FX Rack + Pitch Bend Wheel</h2><span class="arrow">▼</span></div>
+          <div class="panelContent">
+            <div class="bendBox">
+              <div id="pitchWheel" class="wheel"><div id="wheelHandle" class="wheelHandle"></div></div>
+              <div>
+                <div id="bendReadout" class="readout">Pitch Bend: 0.00</div>
+                <div id="bendSliders" class="sliderGrid" style="margin-top:10px"></div>
+              </div>
+            </div>
+            <hr style="border-color:rgba(24,247,255,.15); margin:14px 0">
+            <div id="fxSliders" class="sliderGrid"></div>
+          </div>
+        </section>
+
+        <section id="guidePanel" class="panel collapsed">
+          <div class="panelHeader"><h2>Bluetooth Keyboard Live Shortcuts</h2><span class="arrow">▼</span></div>
+          <div class="panelContent">
+            <div class="kbdTable" id="keyboardGuide"></div>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </section>
+
+<script>
+(() => {
+  'use strict';
+  const $ = sel => document.querySelector(sel);
+  const $$ = sel => Array.from(document.querySelectorAll(sel));
+  const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
+  const NOTE_FLATS = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+  const ROOT_ORDER = ['A','Ab','B','Bb','C','Db','D','Eb','E','F','Gb','G'];
+  const SEMI = {C:0,Db:1,D:2,Eb:3,E:4,F:5,Gb:6,G:7,Ab:8,A:9,Bb:10,B:11};
+  const midiToFreq = midi => 440 * Math.pow(2, (midi - 69) / 12);
+  const midiName = midi => NOTE_FLATS[((midi % 12)+12)%12] + (Math.floor(midi/12)-1);
+
+  const chordTypes = [
+    {id:'maj', name:'Major', intervals:[0,4,7], ref:'Foundational soul/funk color'},
+    {id:'min', name:'Minor', intervals:[0,3,7], ref:'Classic R&B minor center'},
+    {id:'maj7', name:'Major 7', intervals:[0,4,7,11], ref:'Steely Dan / fusion polish'},
+    {id:'min7', name:'Minor 7', intervals:[0,3,7,10], ref:'Neo-soul pocket staple'},
+    {id:'dom7', name:'Dominant 7', intervals:[0,4,7,10], ref:'Blues, funk, and gospel movement'},
+    {id:'maj9', name:'Major 9', intervals:[0,4,7,11,14], ref:'Robert Glasper / lush modern soul'},
+    {id:'min9', name:'Minor 9', intervals:[0,3,7,10,14], ref:'D’Angelo / late-night Rhodes mood'},
+    {id:'dom9', name:'Dominant 9', intervals:[0,4,7,10,14], ref:'Tower of Power / classic funk stab'},
+    {id:'six9', name:'6/9', intervals:[0,4,7,9,14], ref:'Herbie Hancock open voicing flavor'},
+    {id:'m69', name:'Minor 6/9', intervals:[0,3,7,9,14], ref:'Chick Corea / Latin fusion softness'},
+    {id:'add9', name:'Add 9', intervals:[0,4,7,14], ref:'Clean gospel-pop lift'},
+    {id:'maj13', name:'Major 13', intervals:[0,4,7,11,14,21], ref:'Elijah Fox / warm upper extensions'},
+    {id:'dom13', name:'Dominant 13', intervals:[0,4,7,10,14,21], ref:'Jazz-funk horn-section style'},
+    {id:'min11', name:'Minor 11', intervals:[0,3,7,10,14,17], ref:'Glasper / neo-soul floating stack'},
+    {id:'sus9', name:'Sus 9', intervals:[0,5,7,10,14], ref:'Herbie quartal/suspended motion'},
+    {id:'quartal', name:'Quartal Stack', intervals:[0,5,10,15,19], ref:'McCoy / Herbie modal color'},
+    {id:'sowhat', name:'So What Stack', intervals:[0,5,10,15,22], ref:'Modal jazz fourths voicing'},
+    {id:'dim7', name:'Diminished 7', intervals:[0,3,6,9], ref:'Passing-chord tension'},
+    {id:'halfdim9', name:'Half-Dim 9', intervals:[0,3,6,10,14], ref:'Jazz minor iiø color'},
+    {id:'alt7', name:'7#9 b13', intervals:[0,4,10,15,20], ref:'Altered dominant fusion bite'},
+    {id:'maj9no5', name:'Major 9 no 5', intervals:[0,4,11,14,21], ref:'Modern wide neo-soul voicing'},
+    {id:'minmaj9', name:'Minor Major 9', intervals:[0,3,7,11,14], ref:'Cinematic jazz noir'},
+    {id:'gospelSlash', name:'Gospel Lift', intervals:[0,7,11,14,17], ref:'Churchy upper-structure shimmer'},
+    {id:'cluster9', name:'Soft Cluster 9', intervals:[0,2,4,7,11,14], ref:'Bill Evans / modern pad color'}
+  ];
+
+  const presetBanks = {
+    'Electric Piano': [
+      ['Herbie Galaxy Tines','Bell-tine Rhodes inspired by 70s fusion', ['sine','triangle'], [1,2.01], [0,7], [.92,.2], 0.012,.26,.67,1.2, 2400, 1.8],
+      ['Glasper Velvet Nine','Warm neo-soul keys with soft overtones', ['triangle','sine'], [1,.5], [0,-4], [.84,.18], 0.018,.34,.74,1.5, 1800, 1.1],
+      ['Chick Crystal Fusion','Bright electric piano with percussive sparkle', ['sine','sine','triangle'], [1,2,3.01], [0,4,11], [.76,.18,.08], 0.006,.18,.58,1.0, 3100,2.4],
+      ['Steely Studio FM','Polished yacht-fusion digital EP', ['sine','square'], [1,2.5], [0,-7], [.78,.1], 0.01,.22,.62,1.1, 2600,1.4],
+      ['Elijah Moon Felt','Felted tine with intimate attack', ['triangle','sine'], [1,1.997], [0,5], [.74,.14], 0.028,.38,.62,1.8, 1500,.85],
+      ['Dilla Dust Keys','Dusty late-night EP, mellow and rounded', ['triangle','triangle'], [1,.501], [0,-12], [.68,.18], 0.02,.48,.55,1.7, 1200,.7],
+      ['Neo Church Bell EP','Gospel shimmer with glassy top', ['sine','triangle','sine'], [1,2.02,4.01], [0,8,-6], [.7,.2,.06], 0.012,.3,.7,1.4, 3400,2.0],
+      ['Fusion Phaser Tines','Moving tine bed for jazz-funk chords', ['triangle','sine'], [1,2], [0,9], [.78,.18], 0.016,.32,.68,1.45, 2300,1.5],
+      ['Analog Suitcase','Soft suitcase amp style electric piano', ['sine','triangle'], [1,1.5], [0,-9], [.82,.11], 0.015,.36,.68,1.6, 1700,1.0],
+      ['Solar Keys 77','Open bright EP for major 9s and 13s', ['sine','triangle','sine'], [1,2,2.99], [0,3,-5], [.74,.16,.07], 0.01,.2,.65,1.25, 2900,1.7],
+      ['Butter Rhodes Pad','Slow blooming EP-pad hybrid', ['triangle','sine'], [1,.5], [0,-6], [.62,.24], 0.11,.65,.78,2.2, 1350,.9],
+      ['Midnight DX Glass','Digital glass EP with controlled bite', ['sine','square','sine'], [1,2.99,5.01], [0,5,-8], [.72,.08,.045], 0.006,.2,.56,1.0, 3800,2.6],
+      ['Warm Tape Wurli','Round Wurlitzer-inspired reed tone', ['triangle','sawtooth'], [1,2], [0,-3], [.74,.06], 0.01,.24,.6,1.15, 1900,1.2],
+      ['Jazzy Rain EP','Soft attack, high sparkle, rainy texture', ['sine','triangle'], [1,2.015], [0,10], [.76,.16], 0.034,.42,.7,1.9, 2500,1.6],
+      ['Purple Lounge Tines','Dreamy purple-toned chord machine', ['triangle','sine','triangle'], [1,.5,2], [0,-8,8], [.7,.18,.1], 0.022,.33,.66,1.6, 2100,1.3]
+    ],
+    'Synth Lead': [
+      ['Hancock ARP Ribbon','Expressive fusion lead with bend focus', ['sawtooth','square'], [1,1.005], [0,8], [.55,.42], 0.008,.12,.7,.38, 2200,3.2],
+      ['Corea Mini Glide','Smooth portamento lead for melodic lines', ['sawtooth','triangle'], [1,.5], [0,-12], [.68,.22], 0.004,.1,.8,.32, 2400,2.1],
+      ['Glasper Soft Lead','Velvety lead that sits behind chords', ['triangle','sawtooth'], [1,2], [0,-7], [.62,.15], 0.018,.18,.64,.65, 1600,1.2],
+      ['Neon Prophet Line','Bright retro poly lead', ['sawtooth','sawtooth'], [1,1.01], [-6,6], [.48,.48], 0.012,.14,.72,.45, 3000,2.5],
+      ['Cyber Moog Talk','Round mono-style lead with nasal formant', ['square','sawtooth'], [1,2.01], [0,5], [.64,.18], 0.006,.16,.67,.42, 1400,5.5],
+      ['Laser Funk Lead','Sharp funk-solo lead', ['sawtooth','square'], [1,2], [0,12], [.54,.22], 0.003,.08,.55,.25, 4200,4.1],
+      ['Glass Sine Solo','Pure floating sine lead with octave air', ['sine','sine'], [1,2], [0,4], [.76,.18], 0.012,.22,.72,.8, 2600,.9],
+      ['Bit Bloom Lead','16-bit inspired lead with shimmer', ['square','triangle'], [1,2], [0,7], [.45,.25], 0.005,.11,.7,.5, 3600,2.9],
+      ['Soul Saw Whisper','Gentle saw lead for chord melodies', ['sawtooth','triangle'], [1,1.995], [0,-5], [.46,.3], 0.022,.2,.76,.7, 1800,1.5],
+      ['Fusion Portamento','Wide glide synth for expressive bends', ['sawtooth','sine'], [1,.5], [0,-12], [.6,.25], 0.006,.14,.82,.55, 2300,2.0],
+      ['Blue Note Lead','Muted lead with jazz club warmth', ['triangle','square'], [1,2], [0,-10], [.62,.12], 0.018,.26,.58,.72, 1300,1.1],
+      ['Starlight Sync','Aggressive but smooth sync-style lead', ['sawtooth','sawtooth'], [1,2.02], [0,14], [.52,.16], 0.005,.1,.66,.35, 4800,3.8],
+      ['Warm Square Hero','Classic video-game square lead, softened', ['square','sine'], [1,2], [0,3], [.62,.12], 0.006,.09,.7,.33, 2800,1.7],
+      ['Ethereal Fifth Lead','Open fifth shimmer for cinematic hooks', ['triangle','sawtooth'], [1,1.5], [0,0], [.58,.26], 0.014,.2,.74,.75, 2700,2.2],
+      ['Velour Unison Lead','Thick detuned unison lead', ['sawtooth','sawtooth','triangle'], [1,.997,2], [-9,9,0], [.38,.38,.15], 0.009,.13,.75,.48, 2500,2.6]
+    ],
+    'Strings': [
+      ['Analog Solina Glow','Vintage ensemble string pad', ['sawtooth','sawtooth','triangle'], [1,1.003,2], [-8,8,0], [.36,.36,.18], .16,.8,.82,2.8, 1800,1.2],
+      ['Neo Soul Silk','Soft strings under Rhodes chords', ['triangle','sawtooth'], [1,2], [0,-5], [.48,.18], .22,.9,.78,3.1, 1300,.8],
+      ['Cinematic Gospel Swell','Slow emotional string bloom', ['sawtooth','triangle','sine'], [1,1.5,2], [0,-8,5], [.34,.18,.12], .45,1.1,.86,3.8, 1500,.9],
+      ['Fusion Orchestra Pad','Bright fusion string layer', ['sawtooth','sawtooth'], [1,2], [-6,6], [.38,.2], .14,.7,.8,2.4, 2300,1.5],
+      ['Purple Vapor Strings','Wide dreamy synth strings', ['triangle','sawtooth'], [1,.5], [0,-12], [.42,.24], .32,1.2,.85,4.0, 1100,.7],
+      ['Glass Choir Strings','Choir-like upper harmonics', ['sine','triangle','sawtooth'], [1,2,3], [0,4,-7], [.42,.2,.1], .26,.85,.8,3.5, 1900,1.1],
+      ['Tape Chamber Strings','Muted tape string bed', ['sawtooth','triangle'], [1,2], [-3,3], [.4,.16], .28,1.0,.78,3.2, 950,.65],
+      ['Eighties Dream Section','Wide retro string machine', ['sawtooth','sawtooth','square'], [1,.997,2], [-10,10,0], [.33,.33,.08], .18,.75,.82,2.6, 2400,1.4],
+      ['Warm Quartet Pad','Small ensemble pad', ['triangle','triangle','sawtooth'], [1,1.5,2], [0,-5,6], [.38,.16,.14], .2,.86,.81,2.9, 1600,.95],
+      ['Solar Flare Strings','Brighter cinematic top end', ['sawtooth','triangle'], [1,2.01], [0,9], [.42,.2], .16,.62,.76,2.3, 3000,1.8],
+      ['Midnight Mellotron','Mellotron-inspired dark string tone', ['triangle','sawtooth'], [1,2], [-4,4], [.5,.12], .09,.55,.7,2.0, 1150,1.3],
+      ['Cloud Ninth Pad','Maj9-friendly airy strings', ['triangle','sine','sawtooth'], [1,2,4], [0,8,-6], [.38,.16,.08], .38,1.25,.86,4.2, 1800,.8],
+      ['Desert Aurora Section','Wide, glowing desert-night strings', ['sawtooth','triangle'], [1,.5], [-7,7], [.42,.2], .3,.92,.84,3.6, 1700,.9],
+      ['Soft Attack Ensemble','Gentle strings for live layering', ['triangle','sawtooth'], [1,2], [0,-9], [.44,.15], .5,1.1,.88,4.5, 1250,.6],
+      ['Arcade Angel Strings','16-bit pad crossed with string machine', ['square','triangle','sawtooth'], [1,2,3], [0,6,-6], [.26,.2,.12], .11,.5,.72,2.2, 2600,1.6]
+    ],
+    'Bass': [
+      ['Moog Velvet Sub','Round analog sub bass', ['sine','triangle'], [1,.5], [0,-12], [.78,.22], .006,.16,.72,.55, 380,.8],
+      ['P-Funk Rubber Bass','Elastic funk bass with bite', ['sawtooth','square'], [1,.5], [0,-12], [.46,.28], .004,.12,.62,.32, 720,2.2],
+      ['Neo Rhodes Bass','Warm electric-key bass layer', ['triangle','sine'], [1,2], [0,4], [.7,.12], .008,.22,.68,.65, 650,1.2],
+      ['Clean Sine Lowend','Pure rounded low end', ['sine'], [1], [0], [.95], .012,.18,.76,.5, 420,.5],
+      ['Juno Pulse Bass','Retro pulse bass with gentle width', ['square','sawtooth'], [1,1.005], [-5,5], [.5,.26], .006,.14,.68,.42, 900,1.8],
+      ['Fusion Fretless Synth','Sliding fretless-like bass tone', ['sine','sawtooth'], [1,2], [0,-6], [.65,.09], .02,.22,.72,.9, 600,1.0],
+      ['West Coast Mono','Tight punchy mono bass', ['sawtooth','triangle'], [1,.5], [0,-12], [.55,.18], .003,.1,.6,.25, 850,2.7],
+      ['Soft 808 Bloom','Smooth long sub with soft attack', ['sine','triangle'], [1,2], [0,0], [.78,.06], .025,.35,.84,1.2, 300,.4],
+      ['Electric Funk Finger','Plucky synth bass for funk lines', ['triangle','square'], [1,2], [0,7], [.6,.12], .003,.16,.45,.22, 780,2.5],
+      ['Dark Saw Sub','Low saw pad-bass hybrid', ['sawtooth','sine'], [1,.5], [0,-12], [.38,.4], .018,.28,.7,.85, 520,1.4],
+      ['Glide Mono Bass','Portamento-friendly bass', ['square','sine'], [1,.5], [0,-12], [.5,.32], .006,.12,.7,.5, 600,1.6],
+      ['Chord Root Bass','Stable root reinforcement for chords', ['sine','triangle'], [1,2], [0,-7], [.82,.08], .01,.18,.72,.7, 480,.7],
+      ['Acid Jazz Round','Muted acid-jazz bass patch', ['sawtooth','triangle'], [1,1.5], [0,-5], [.42,.2], .006,.2,.58,.36, 680,3.2],
+      ['Tape Saturated Bass','Warm bass with analog grit', ['triangle','sawtooth'], [1,2], [0,-8], [.58,.13], .008,.18,.64,.5, 560,1.8],
+      ['Deep House Organ Bass','Organ-like low synth bass', ['sine','square','triangle'], [1,2,3], [0,0,-6], [.6,.1,.06], .012,.2,.7,.7, 700,1.2]
+    ]
+  };
+  for(const bank of Object.keys(presetBanks)){
+    presetBanks[bank] = presetBanks[bank].map(row => ({
+      name:row[0], desc:row[1], waves:row[2], ratios:row[3], detunes:row[4], gains:row[5],
+      attack:row[6], decay:row[7], sustain:row[8], release:row[9], filter:row[10], q:row[11]
+    }));
+  }
+
+  const defaultParams = {
+    volume:.74, attack:.02, decay:.24, sustain:.68, release:1.15, cutoff:1, resonance:1, detune:0,
+    vibratoRate:4.8, vibratoDepth:0, portamento:.015, width:.55,
+    bendRange:2, bendGlide:.04,
+    chorus:.18, delayMix:.12, delayTime:.28, delayFeedback:.22, reverb:.18, drive:.04,
+    tremoloDepth:0, tremoloRate:5.5, lowEQ:0, midEQ:0, highEQ:0
+  };
+
+  const sliderDefs = {
+    synth:[
+      ['volume','Master Volume',0,1,.01], ['attack','Attack',.001,1.2,.001], ['decay','Decay',.02,1.8,.01], ['sustain','Sustain',0,1,.01],
+      ['release','Release',.05,5,.01], ['cutoff','Cutoff Tone',.15,2.5,.01], ['resonance','Resonance',.2,8,.01], ['detune','Detune Cents',-18,18,.1],
+      ['vibratoRate','Vibrato Rate',.1,12,.1], ['vibratoDepth','Vibrato Depth',0,45,.5], ['portamento','Note Glide',0,.35,.001], ['width','Stereo Width',0,1,.01]
+    ],
+    bend:[['bendRange','Bend Semitones',1,12,1], ['bendGlide','Bend Glide Speed',.001,.35,.001]],
+    fx:[
+      ['chorus','Chorus',0,1,.01], ['delayMix','Delay Mix',0,.8,.01], ['delayTime','Delay Time',.05,1.2,.01], ['delayFeedback','Delay Feedback',0,.78,.01],
+      ['reverb','Reverb',0,.85,.01], ['drive','Soft Drive',0,.85,.01], ['tremoloDepth','Tremolo Depth',0,1,.01], ['tremoloRate','Tremolo Rate',.1,14,.1],
+      ['lowEQ','Low EQ dB',-12,12,.1], ['midEQ','Mid EQ dB',-12,12,.1], ['highEQ','High EQ dB',-12,12,.1]
+    ]
+  };
+
+  const state = {
+    launched:false,
+    bank:'Electric Piano', presetIndex:0,
+    selectedRoot:'C', selectedChordId:'maj9', chordKey:false,
+    buildMode:false, selectedBuildNotes:new Set(), savedLayouts:[], viewedLayoutIndex:-1,
+    pads:Array.from({length:16},()=>null), padPage:0, assignMode:false, assignLayoutMode:false,
+    params:{...defaultParams}, pitchBend:0, bendLocked:false, baseOctave:4,
+    uiHidden:false
+  };
+
+  let audio = null;
+  let activeVoices = new Map();
+  let activeGroups = new Map();
+  let voiceId = 1;
+  let keyboardDown = new Set();
+  let stateSaveTimer = null;
+
+  function loadState(){
+    try{
+      const raw = localStorage.getItem('ChordAssistStateV2');
+      if(!raw) return;
+      const saved = JSON.parse(raw);
+      if(saved.bank && presetBanks[saved.bank]) state.bank = saved.bank;
+      if(Number.isInteger(saved.presetIndex)) state.presetIndex = clamp(saved.presetIndex,0,14);
+      if(saved.selectedRoot) state.selectedRoot = saved.selectedRoot;
+      if(saved.selectedChordId) state.selectedChordId = saved.selectedChordId;
+      if(saved.params) state.params = {...state.params, ...saved.params};
+      if(Array.isArray(saved.savedLayouts)) state.savedLayouts = saved.savedLayouts;
+      if(Array.isArray(saved.pads)) state.pads = Array.from({length:16},(_,i)=>saved.pads[i] || null);
+      if(Number.isInteger(saved.viewedLayoutIndex)) state.viewedLayoutIndex = saved.viewedLayoutIndex;
+    }catch(e){console.warn('Could not load state', e);}
+  }
+  function saveState(){
+    clearTimeout(stateSaveTimer);
+    stateSaveTimer = setTimeout(()=>{
+      const serial = {
+        bank:state.bank, presetIndex:state.presetIndex, selectedRoot:state.selectedRoot, selectedChordId:state.selectedChordId,
+        params:state.params, savedLayouts:state.savedLayouts, pads:state.pads, viewedLayoutIndex:state.viewedLayoutIndex
+      };
+      localStorage.setItem('ChordAssistStateV2', JSON.stringify(serial));
+    }, 160);
+  }
+
+  function makeDistortionCurve(amount){
+    const n = 44100, curve = new Float32Array(n);
+    const k = amount * 120;
+    for(let i=0;i<n;i++){
+      const x = i * 2 / n - 1;
+      curve[i] = (1+k)*x/(1+k*Math.abs(x));
+    }
+    return curve;
+  }
+  function makeImpulse(ctx, seconds=2.7, decay=2.1){
+    const len = Math.floor(ctx.sampleRate * seconds);
+    const impulse = ctx.createBuffer(2, len, ctx.sampleRate);
+    for(let ch=0; ch<2; ch++){
+      const data = impulse.getChannelData(ch);
+      for(let i=0;i<len;i++) data[i] = (Math.random()*2-1) * Math.pow(1-i/len, decay) * .55;
+    }
+    return impulse;
+  }
+  async function ensureAudio(){
+    if(audio){
+      if(audio.ctx.state === 'suspended') await audio.ctx.resume();
+      return audio;
+    }
+    const ctx = new (window.AudioContext || window.webkitAudioContext)({latencyHint:'interactive'});
+    const input = ctx.createGain();
+    const dry = ctx.createGain();
+    const chorusSend = ctx.createGain();
+    const chorusDelay = ctx.createDelay(.08);
+    const chorusDepth = ctx.createGain();
+    const chorusLfo = ctx.createOscillator();
+    chorusLfo.frequency.value = .72;
+    chorusDepth.gain.value = .012;
+    chorusLfo.connect(chorusDepth).connect(chorusDelay.delayTime);
+    chorusDelay.delayTime.value = .018;
+    chorusLfo.start();
+
+    const delaySend = ctx.createGain();
+    const delay = ctx.createDelay(1.5);
+    const delayFeedback = ctx.createGain();
+    delay.connect(delayFeedback).connect(delay);
+
+    const reverbSend = ctx.createGain();
+    const convolver = ctx.createConvolver();
+    convolver.buffer = makeImpulse(ctx);
+
+    const drive = ctx.createWaveShaper();
+    drive.oversample = '4x';
+    const tremolo = ctx.createGain();
+    const tremLfo = ctx.createOscillator();
+    const tremDepth = ctx.createGain();
+    tremLfo.connect(tremDepth).connect(tremolo.gain);
+    tremLfo.start();
+
+    const lowEQ = ctx.createBiquadFilter(); lowEQ.type='lowshelf'; lowEQ.frequency.value=160;
+    const midEQ = ctx.createBiquadFilter(); midEQ.type='peaking'; midEQ.frequency.value=1000; midEQ.Q.value=.8;
+    const highEQ = ctx.createBiquadFilter(); highEQ.type='highshelf'; highEQ.frequency.value=5000;
+    const compressor = ctx.createDynamicsCompressor(); compressor.threshold.value=-14; compressor.knee.value=18; compressor.ratio.value=3; compressor.attack.value=.006; compressor.release.value=.18;
+    const master = ctx.createGain();
+
+    input.connect(dry).connect(drive).connect(tremolo).connect(lowEQ).connect(midEQ).connect(highEQ).connect(compressor).connect(master).connect(ctx.destination);
+    input.connect(chorusSend).connect(chorusDelay).connect(drive);
+    input.connect(delaySend).connect(delay).connect(drive);
+    input.connect(reverbSend).connect(convolver).connect(drive);
+
+    audio = {ctx,input,dry,chorusSend,chorusDelay,delaySend,delay,delayFeedback,reverbSend,convolver,drive,tremolo,tremLfo,tremDepth,lowEQ,midEQ,highEQ,compressor,master};
+    updateAudioParams();
+    $('#soundStatus').textContent = 'Sound: on';
+    return audio;
+  }
+  function updateAudioParams(){
+    if(!audio) return;
+    const p = state.params, now = audio.ctx.currentTime;
+    audio.master.gain.setTargetAtTime(p.volume, now, .02);
+    audio.chorusSend.gain.setTargetAtTime(p.chorus*.45, now, .03);
+    audio.delaySend.gain.setTargetAtTime(p.delayMix*.55, now, .03);
+    audio.delay.delayTime.setTargetAtTime(p.delayTime, now, .04);
+    audio.delayFeedback.gain.setTargetAtTime(p.delayFeedback, now, .03);
+    audio.reverbSend.gain.setTargetAtTime(p.reverb*.7, now, .03);
+    audio.drive.curve = makeDistortionCurve(p.drive);
+    audio.tremLfo.frequency.setTargetAtTime(p.tremoloRate, now, .03);
+    audio.tremolo.gain.cancelScheduledValues(now);
+    audio.tremolo.gain.setValueAtTime(1 - (p.tremoloDepth*.5), now);
+    audio.tremDepth.gain.setTargetAtTime(p.tremoloDepth*.5, now, .03);
+    audio.lowEQ.gain.setTargetAtTime(p.lowEQ, now, .03);
+    audio.midEQ.gain.setTargetAtTime(p.midEQ, now, .03);
+    audio.highEQ.gain.setTargetAtTime(p.highEQ, now, .03);
+  }
+  function currentPreset(){ return presetBanks[state.bank][state.presetIndex]; }
+  function currentChordType(){ return chordTypes.find(c=>c.id===state.selectedChordId) || chordTypes[0]; }
+  function rootMidi(root){ return 60 + SEMI[root]; }
+  function chordMidi(root, type=currentChordType()){ return type.intervals.map(i=>rootMidi(root)+i); }
+  function freqForVoice(v){
+    const semis = state.pitchBend * Number(state.params.bendRange || 2);
+    return v.baseFreq * Math.pow(2, semis/12) * Math.pow(2, (v.detuneCents + Number(state.params.detune||0))/1200);
+  }
+  function applyPitchToVoice(v, immediate=false){
+    if(!audio) return;
+    const now = audio.ctx.currentTime;
+    const tau = immediate ? .001 : Number(state.params.bendGlide || .04);
+    for(const osc of v.oscs) osc.frequency.setTargetAtTime(freqForVoice(v), now, tau);
+  }
+  function setPitchBend(val, immediate=false){
+    state.pitchBend = clamp(val,-1,1);
+    const y = 50 - state.pitchBend * 43;
+    $('#wheelHandle').style.top = y + '%';
+    $('#bendReadout').textContent = `Pitch Bend: ${state.pitchBend.toFixed(2)}${state.bendLocked?'  LOCKED':''}`;
+    for(const v of activeVoices.values()) applyPitchToVoice(v, immediate);
+  }
+  function noteOn(midi, velocity=.9){
+    if(!audio) return [];
+    const ctx = audio.ctx, now = ctx.currentTime, preset = currentPreset(), p = state.params;
+    const ids = [];
+    const baseFreq = midiToFreq(midi);
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    const filterFreq = clamp(preset.filter * p.cutoff, 90, 13000);
+    filter.frequency.setValueAtTime(filterFreq, now);
+    filter.Q.setValueAtTime(clamp(preset.q * p.resonance, .1, 22), now);
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0.0001, now);
+    const attack = Math.max(.001, Number(p.attack) + preset.attack*.45);
+    const decay = Math.max(.01, Number(p.decay) + preset.decay*.3);
+    const sustain = clamp((Number(p.sustain)*.55 + preset.sustain*.45), 0, 1);
+    const release = Math.max(.03, Number(p.release) + preset.release*.28);
+    env.gain.exponentialRampToValueAtTime(Math.max(.001, velocity), now + attack);
+    env.gain.setTargetAtTime(Math.max(.001, sustain*velocity), now + attack, decay*.45);
+    const pan = ctx.createStereoPanner();
+    const width = Number(p.width || 0);
+    pan.pan.value = (Math.random()*2-1) * width * .55;
+    filter.connect(env).connect(pan).connect(audio.input);
+
+    const voice = {id:voiceId++, midi, baseFreq, oscs:[], env, filter, pan, release, start:now, detuneCents:0};
+    preset.waves.forEach((wave, idx)=>{
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = wave;
+      const ratio = preset.ratios[idx] || 1;
+      const cents = (preset.detunes[idx] || 0) + (Math.random()*2-1)*1.2;
+      const g = (preset.gains[idx] || .1) / Math.sqrt(preset.waves.length);
+      const vibrato = ctx.createOscillator();
+      const vibratoDepth = ctx.createGain();
+      vibrato.frequency.value = Number(p.vibratoRate || 5);
+      vibratoDepth.gain.value = Number(p.vibratoDepth || 0);
+      const targetBase = baseFreq * ratio * Math.pow(2, cents/1200);
+      osc.frequency.value = targetBase;
+      vibrato.connect(vibratoDepth).connect(osc.frequency);
+      gain.gain.value = g;
+      osc.connect(gain).connect(filter);
+      osc.start(now); vibrato.start(now);
+      osc._ratio = ratio; osc._vibrato = vibrato; osc._gain = gain;
+      voice.oscs.push(osc);
+      // Per oscillator bend uses the oscillator's own ratio. Preserve ratio by wrapping base frequency at voice level.
+      const oldApply = applyPitchToVoice;
+      osc._apply = () => {
+        const semis = state.pitchBend * Number(state.params.bendRange || 2);
+        const f = baseFreq * ratio * Math.pow(2, semis/12) * Math.pow(2, (cents + Number(state.params.detune||0))/1200);
+        osc.frequency.setTargetAtTime(f, audio.ctx.currentTime, Number(state.params.bendGlide || .04));
+      };
+    });
+    voice.detuneCents = 0;
+    voice.applyOscPitch = (immediate=false)=>{
+      const now2 = audio.ctx.currentTime;
+      for(const osc of voice.oscs){
+        const semis = state.pitchBend * Number(state.params.bendRange || 2);
+        const cents = Number(state.params.detune||0);
+        const base = baseFreq * (osc._ratio || 1);
+        const target = base * Math.pow(2, semis/12) * Math.pow(2, cents/1200);
+        osc.frequency.setTargetAtTime(target, now2, immediate?.001:Number(state.params.bendGlide || .04));
+      }
+    };
+    activeVoices.set(voice.id, voice);
+    highlightMidi(midi, true);
+    setTimeout(()=>highlightMidi(midi, false), 900 + release*300);
+    ids.push(voice.id);
+    return ids;
+  }
+  function releaseVoice(id){
+    const v = activeVoices.get(id);
+    if(!v || !audio) return;
+    const now = audio.ctx.currentTime;
+    v.env.gain.cancelScheduledValues(now);
+    v.env.gain.setTargetAtTime(0.0001, now, Math.max(.015, v.release*.2));
+    setTimeout(()=>{
+      try{
+        v.oscs.forEach(o=>{ o._vibrato && o._vibrato.stop(); o.stop(); o.disconnect(); });
+        v.env.disconnect(); v.filter.disconnect(); v.pan.disconnect();
+      }catch(e){}
+      activeVoices.delete(id);
+      highlightMidi(v.midi, false);
+    }, Math.max(100, v.release*900));
+  }
+  function releaseGroup(groupId){
+    const ids = activeGroups.get(groupId) || [];
+    ids.forEach(releaseVoice);
+    activeGroups.delete(groupId);
+  }
+  function panic(){
+    for(const id of Array.from(activeVoices.keys())) releaseVoice(id);
+    activeGroups.clear(); keyboardDown.clear();
+    $$('.playing').forEach(el=>el.classList.remove('playing'));
+  }
+  function playMidiSet(midis, dur=1100, label='Chord'){
+    ensureAudio().then(()=>{
+      const ids = midis.flatMap(m=>noteOn(m,.88));
+      const gid = 'auto-' + Math.random(); activeGroups.set(gid, ids);
+      $('#nowPlaying').textContent = `${label}: ${midis.map(midiName).join('  ')}`;
+      setTimeout(()=>releaseGroup(gid), dur);
+    });
+  }
+  function playFromPianoMidi(midi, groupId){
+    if(state.buildMode){
+      toggleBuildNote(midi);
+      ensureAudio().then(()=>{
+        const ids = noteOn(midi,.9); activeGroups.set(groupId, ids);
+      });
+      return;
+    }
+    ensureAudio().then(()=>{
+      const ids = state.chordKey ? currentChordType().intervals.flatMap(i=>noteOn(midi+i,.83)) : noteOn(midi,.9);
+      activeGroups.set(groupId, ids);
+      $('#nowPlaying').textContent = state.chordKey ? `${midiName(midi)} ${currentChordType().name}` : midiName(midi);
+    });
+  }
+
+  function buildPiano(){
+    const piano = $('#piano'); piano.innerHTML = '';
+    const whiteMidis = [];
+    for(let oct=3; oct<=4; oct++) [0,2,4,5,7,9,11].forEach(s=>whiteMidis.push((oct+1)*12+s));
+    const whiteW = 100 / whiteMidis.length;
+    whiteMidis.forEach((m,i)=>{
+      const key = document.createElement('div');
+      key.className = 'whiteKey'; key.dataset.midi = m; key.textContent = midiName(m).replace(/[0-9]/g,'');
+      key.style.left = (i*whiteW) + '%'; key.style.width = `calc(${whiteW}% - 2px)`;
+      wireKey(key, m); piano.appendChild(key);
+    });
+    const blackOffsets = [{semi:1,after:0},{semi:3,after:1},{semi:6,after:3},{semi:8,after:4},{semi:10,after:5}];
+    for(let oct=3; oct<=4; oct++){
+      const octIndex = oct-3;
+      blackOffsets.forEach(b=>{
+        const m = (oct+1)*12 + b.semi;
+        const whiteIndex = octIndex*7 + b.after;
+        const key = document.createElement('div'); key.className='blackKey'; key.dataset.midi=m; key.textContent=midiName(m).replace(/[0-9]/g,'');
+        const left = ((whiteIndex+1)*whiteW) - (whiteW*.32);
+        key.style.left = left + '%'; key.style.width = (whiteW*.64) + '%';
+        wireKey(key, m); piano.appendChild(key);
+      });
+    }
+    renderBuildHighlights();
+    previewChordOnPiano();
+  }
+  function wireKey(el, midi){
+    let gid = null;
+    el.addEventListener('pointerdown', e=>{e.preventDefault(); gid='p'+midi+'-'+Date.now(); el.setPointerCapture?.(e.pointerId); playFromPianoMidi(midi,gid);});
+    el.addEventListener('pointerup', e=>{e.preventDefault(); if(gid) releaseGroup(gid); gid=null;});
+    el.addEventListener('pointercancel', ()=>{if(gid) releaseGroup(gid); gid=null;});
+    el.addEventListener('pointerleave', e=>{ if(e.buttons && gid){ releaseGroup(gid); gid=null; }});
+  }
+  function highlightMidi(midi,on){
+    const el = document.querySelector(`[data-midi="${midi}"]`);
+    if(el) el.classList.toggle('playing', !!on);
+  }
+  function toggleBuildNote(midi){
+    if(state.selectedBuildNotes.has(midi)) state.selectedBuildNotes.delete(midi); else state.selectedBuildNotes.add(midi);
+    renderBuildHighlights();
+    updateStatuses();
+  }
+  function renderBuildHighlights(){
+    $$('.whiteKey,.blackKey').forEach(k=>k.classList.toggle('buildSelected', state.selectedBuildNotes.has(Number(k.dataset.midi))));
+  }
+  function previewChordOnPiano(){
+    $$('.whiteKey,.blackKey').forEach(k=>k.classList.remove('chordPreview'));
+    const midis = chordMidi(state.selectedRoot, currentChordType());
+    midis.forEach(m=>{const el = document.querySelector(`[data-midi="${m}"]`); if(el) el.classList.add('chordPreview');});
+  }
+
+  function renderSliders(){
+    const make = (container, defs) => {
+      container.innerHTML = '';
+      defs.forEach(([id,label,min,max,step])=>{
+        const box = document.createElement('div'); box.className='sliderBox';
+        const lab = document.createElement('label');
+        const value = document.createElement('span'); value.id = 'val-'+id; value.textContent = Number(state.params[id]).toFixed(step < .01 ? 3 : (step < 1 ? 2 : 0));
+        lab.innerHTML = `<span>${label}</span>`; lab.appendChild(value);
+        const input = document.createElement('input'); input.type='range'; input.min=min; input.max=max; input.step=step; input.value=state.params[id];
+        input.addEventListener('input', ()=>{
+          state.params[id] = Number(input.value);
+          value.textContent = Number(state.params[id]).toFixed(step < .01 ? 3 : (step < 1 ? 2 : 0));
+          updateAudioParams();
+          if(id==='bendRange' || id==='bendGlide') setPitchBend(state.pitchBend, true);
+          saveState();
+        });
+        box.append(lab,input); container.appendChild(box);
+      });
+    };
+    make($('#synthSliders'), sliderDefs.synth);
+    make($('#bendSliders'), sliderDefs.bend);
+    make($('#fxSliders'), sliderDefs.fx);
+  }
+
+  function renderBanks(){
+    const tabs = $('#bankTabs'); tabs.innerHTML='';
+    Object.keys(presetBanks).forEach(bank=>{
+      const b=document.createElement('button'); b.className='chipBtn'+(bank===state.bank?' activeGlow':''); b.textContent=bank;
+      b.addEventListener('click',()=>{state.bank=bank; state.presetIndex=0; renderBanks(); saveState();}); tabs.appendChild(b);
+    });
+    const grid=$('#presetGrid'); grid.innerHTML='';
+    presetBanks[state.bank].forEach((preset,i)=>{
+      const btn=document.createElement('button'); btn.className='chipBtn presetBtn'+(i===state.presetIndex?' goldGlow':'');
+      btn.innerHTML=`<strong>${String(i+1).padStart(2,'0')} · ${preset.name}</strong><span>${preset.desc}</span>`;
+      btn.addEventListener('click',()=>{state.presetIndex=i; renderBanks(); $('#nowPlaying').textContent=`Preset: ${state.bank} / ${preset.name}`; saveState();});
+      grid.appendChild(btn);
+    });
+  }
+
+  function renderChords(){
+    const rootStrip=$('#rootStrip'); rootStrip.innerHTML='';
+    ROOT_ORDER.forEach(root=>{
+      const b=document.createElement('button'); b.className='rootBtn'+(root===state.selectedRoot?' activeGlow':''); b.textContent=root;
+      b.addEventListener('click',()=>{state.selectedRoot=root; renderChords(); previewChordOnPiano(); saveState();}); rootStrip.appendChild(b);
+    });
+    const list=$('#chordList'); list.innerHTML='';
+    chordTypes.forEach(type=>{
+      const b=document.createElement('button'); b.className='chipBtn'+(type.id===state.selectedChordId?' goldGlow':'');
+      b.innerHTML=`<strong>${state.selectedRoot} ${type.name}</strong><span>${type.ref}</span>`;
+      b.addEventListener('click',()=>{state.selectedChordId=type.id; renderChords(); previewChordOnPiano(); saveState();});
+      list.appendChild(b);
+    });
+    $('#currentChord').textContent = `Current chord: ${state.selectedRoot} ${currentChordType().name} · Shape intervals: ${currentChordType().intervals.join(', ')} · ${currentChordType().ref}`;
+  }
+
+  function updateStatuses(){
+    $('#chordStatus').textContent = `Chord-Key: ${state.chordKey ? currentChordType().name : 'off'}`;
+    $('#buildStatus').textContent = `Build: ${state.buildMode ? state.selectedBuildNotes.size+' keys' : 'off'}`;
+    $('#toggleChordKey').classList.toggle('activeGlow', state.chordKey);
+    $('#toggleBuild').classList.toggle('warnGlow', state.buildMode);
+    $('#assignPad').textContent = `Assign Mode: ${state.assignMode?'On':'Off'}`;
+    $('#assignPad').classList.toggle('goldGlow', state.assignMode);
+    document.body.classList.toggle('uiHidden', state.uiHidden);
+  }
+
+  function renderPads(){
+    const grid = $('#padGrid'); grid.innerHTML='';
+    const start = state.padPage * 8;
+    $('#padPageReadout').textContent = `Pads ${start+1}–${start+8}`;
+    for(let i=start;i<start+8;i++){
+      const p = state.pads[i];
+      const b = document.createElement('button'); b.className='padBtn';
+      const keyNum = (i-start+1);
+      b.innerHTML = `<span class="padNum">PAD ${i+1} · key ${keyNum}</span><span class="padName">${p ? padLabel(p) : 'Empty · assign current chord'}</span><span class="mini">${p ? padMini(p) : 'Tap while Assign Mode is on.'}</span>`;
+      b.addEventListener('click',()=>handlePad(i));
+      grid.appendChild(b);
+    }
+  }
+  function padLabel(p){
+    if(p.type==='chord') return `${p.root} ${chordTypes.find(c=>c.id===p.chordId)?.name || 'Chord'}`;
+    if(p.type==='layout') return p.name || 'Saved Layout';
+    return 'Empty';
+  }
+  function padMini(p){
+    if(p.type==='chord') return chordTypes.find(c=>c.id===p.chordId)?.ref || 'Chord pad';
+    if(p.type==='layout') return `${p.notes.length} highlighted keys`;
+    return '';
+  }
+  function handlePad(index){
+    if(state.assignMode){
+      state.pads[index] = {type:'chord', root:state.selectedRoot, chordId:state.selectedChordId};
+      state.assignMode=false; renderPads(); updateStatuses(); saveState(); return;
+    }
+    if(state.assignLayoutMode && state.viewedLayoutIndex >= 0 && state.savedLayouts[state.viewedLayoutIndex]){
+      const l = state.savedLayouts[state.viewedLayoutIndex];
+      state.pads[index] = {type:'layout', name:l.name, notes:l.notes};
+      state.assignLayoutMode=false; renderPads(); saveState(); return;
+    }
+    const p = state.pads[index];
+    if(!p){
+      state.pads[index] = {type:'chord', root:state.selectedRoot, chordId:state.selectedChordId};
+      renderPads(); saveState();
+      playPad(index);
+    } else playPad(index);
+  }
+  function playPad(index){
+    const p = state.pads[index]; if(!p) return;
+    if(p.type==='chord'){
+      const type = chordTypes.find(c=>c.id===p.chordId) || currentChordType();
+      playMidiSet(chordMidi(p.root, type), 1250, `Pad ${index+1} · ${p.root} ${type.name}`);
+    } else if(p.type==='layout') playMidiSet(p.notes, 1300, `Pad ${index+1} · ${p.name}`);
+  }
+
+  function saveBuild(){
+    const notes = Array.from(state.selectedBuildNotes).sort((a,b)=>a-b);
+    if(!notes.length){ $('#nowPlaying').textContent='Build Mode: highlight at least one key first.'; return; }
+    const name = prompt('Name this saved key layout:', `Layout ${state.savedLayouts.length+1} · ${notes.map(midiName).join(' ')}`) || `Layout ${state.savedLayouts.length+1}`;
+    state.savedLayouts.unshift({name, notes, created:new Date().toLocaleString()});
+    state.viewedLayoutIndex = 0;
+    renderSavedLayouts(); drawLayout(0); saveState();
+  }
+  function renderSavedLayouts(){
+    const list=$('#layoutList'); list.innerHTML='';
+    if(!state.savedLayouts.length){
+      list.innerHTML='<div class="hint">No saved layouts yet. Turn on Build Mode, tap keys, then press Save Highlighted Keys.</div>'; drawLayout(-1); return;
+    }
+    state.savedLayouts.forEach((layout,i)=>{
+      const item=document.createElement('div'); item.className='layoutItem'+(i===state.viewedLayoutIndex?' activeGlow':'');
+      item.innerHTML=`<strong>${layout.name}</strong><span class="mini">${layout.notes.map(midiName).join(' · ')}<br>${layout.created || ''}</span>`;
+      const row=document.createElement('div'); row.className='buttonRow';
+      const view=button('View',()=>{state.viewedLayoutIndex=i; renderSavedLayouts(); drawLayout(i); saveState();});
+      const play=button('Play',()=>playMidiSet(layout.notes, 1400, layout.name));
+      const assign=button('Assign to Pad',()=>{state.assignLayoutMode=true; $('#nowPlaying').textContent='Tap a pad to assign this saved layout.'; state.viewedLayoutIndex=i; drawLayout(i); renderSavedLayouts();});
+      const del=button('Delete',()=>{state.savedLayouts.splice(i,1); state.viewedLayoutIndex=Math.min(state.viewedLayoutIndex,state.savedLayouts.length-1); renderSavedLayouts(); saveState();}); del.classList.add('warnGlow');
+      row.append(view,play,assign,del); item.appendChild(row); list.appendChild(item);
+    });
+  }
+  function button(txt, fn){ const b=document.createElement('button'); b.className='tinyBtn'; b.textContent=txt; b.addEventListener('click',fn); return b; }
+  function drawLayout(index){
+    const canvas=$('#layoutCanvas'), ctx=canvas.getContext('2d');
+    const w=canvas.width, h=canvas.height;
+    ctx.clearRect(0,0,w,h);
+    const grd=ctx.createLinearGradient(0,0,w,h); grd.addColorStop(0,'#02020a'); grd.addColorStop(.55,'#0b0b25'); grd.addColorStop(1,'#210827');
+    ctx.fillStyle=grd; ctx.fillRect(0,0,w,h);
+    ctx.strokeStyle='rgba(24,247,255,.45)'; ctx.lineWidth=4; roundRect(ctx,16,16,w-32,h-32,28); ctx.stroke();
+    ctx.fillStyle='#eaffff'; ctx.font='bold 42px monospace'; ctx.shadowColor='#18f7ff'; ctx.shadowBlur=20;
+    const layout = index>=0 ? state.savedLayouts[index] : null;
+    ctx.fillText(layout ? layout.name : 'ChordAssist Key Layout', 42, 70);
+    ctx.shadowBlur=0; ctx.fillStyle='#9ec8d8'; ctx.font='22px monospace';
+    ctx.fillText(layout ? layout.notes.map(midiName).join('  ') : 'No saved layout selected', 42, 106);
+    const notes = new Set(layout ? layout.notes : []);
+    const startX=42, top=168, whiteCount=14, whiteW=(w-84)/whiteCount, whiteH=190;
+    const whiteSemis=[0,2,4,5,7,9,11];
+    let whiteMidis=[]; for(let oct=3;oct<=4;oct++) whiteSemis.forEach(s=>whiteMidis.push((oct+1)*12+s));
+    whiteMidis.forEach((m,i)=>{
+      ctx.fillStyle=notes.has(m)?'#ff3bd5':'#e8edff'; ctx.strokeStyle='#101020'; ctx.lineWidth=2;
+      ctx.fillRect(startX+i*whiteW, top, whiteW-2, whiteH); ctx.strokeRect(startX+i*whiteW, top, whiteW-2, whiteH);
+      ctx.fillStyle=notes.has(m)?'#fff':'#090912'; ctx.font='bold 18px monospace'; ctx.fillText(midiName(m).replace(/[0-9]/g,''), startX+i*whiteW+whiteW*.32, top+whiteH-18);
+    });
+    const blackOffsets=[{semi:1,after:0},{semi:3,after:1},{semi:6,after:3},{semi:8,after:4},{semi:10,after:5}];
+    for(let oct=3;oct<=4;oct++){
+      const oi=oct-3;
+      blackOffsets.forEach(b=>{
+        const m=(oct+1)*12+b.semi, wi=oi*7+b.after; const x=startX+(wi+1)*whiteW-whiteW*.31;
+        ctx.fillStyle=notes.has(m)?'#18f7ff':'#05050c'; ctx.strokeStyle=notes.has(m)?'#fff':'#18f7ff';
+        ctx.fillRect(x, top, whiteW*.62, whiteH*.62); ctx.strokeRect(x, top, whiteW*.62, whiteH*.62);
+        ctx.fillStyle='#fff'; ctx.font='bold 15px monospace'; ctx.fillText(midiName(m).replace(/[0-9]/g,''), x+whiteW*.15, top+whiteH*.62-14);
+      });
+    }
+    ctx.fillStyle='#ffd463'; ctx.font='18px monospace'; ctx.fillText('Generated inside ChordAssist', 42, h-34);
+  }
+  function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+  function downloadPNG(){
+    if(state.viewedLayoutIndex < 0 && state.savedLayouts.length) state.viewedLayoutIndex = 0;
+    drawLayout(state.viewedLayoutIndex);
+    const a=document.createElement('a');
+    const name=(state.savedLayouts[state.viewedLayoutIndex]?.name || 'ChordAssist_Layout').replace(/[^a-z0-9_-]+/gi,'_');
+    a.download = `${name}.png`; a.href=$('#layoutCanvas').toDataURL('image/png'); a.click();
+  }
+
+  function renderKeyboardGuide(){
+    const rows = [
+      ['A W S E D F T G Y H U J K','Play chromatic piano notes'], ['Z / X','Octave down / octave up'], ['B','Toggle Build Mode'], ['C','Toggle Chord-Key Mode'],
+      ['1–8','Trigger visible pad page'], ['9 / 0','Previous / next pad page'], ['[ / ]','Previous / next sound preset'], [', / .','Pitch bend down / up while held'],
+      ['V / N','Lock bend up / lock bend down'], ['L','Lock bend at current position'], ['M','Unlock bend and glide center'], ['Space','All notes off'],
+      ['F','Fullscreen'], ['?','Open this keyboard guide'], ['R','Cycle root note'], ['T','Cycle chord shape']
+    ];
+    const g=$('#keyboardGuide'); g.innerHTML='';
+    rows.forEach(([k,d])=>{const line=document.createElement('div'); line.className='kbdLine'; line.innerHTML=`<kbd>${k}</kbd><span>${d}</span>`; g.appendChild(line);});
+  }
+
+  function bindUI(){
+    $('#launch').addEventListener('click', async()=>{ $('#home').classList.add('hidden'); $('#app').classList.remove('hidden'); await ensureAudio(); state.launched=true; setPitchBend(0,true); });
+    $('#homeBtn').addEventListener('click',()=>{panic(); $('#app').classList.add('hidden'); $('#home').classList.remove('hidden');});
+    $('#fullBtn').addEventListener('click',()=>{ const el=document.documentElement; if(!document.fullscreenElement) el.requestFullscreen?.(); else document.exitFullscreen?.(); });
+    $('#panicBtn').addEventListener('click',panic);
+    $('#hideDot').addEventListener('click',()=>{state.uiHidden=!state.uiHidden; updateStatuses();});
+    $$('.panelHeader').forEach(h=>h.addEventListener('click',()=>h.parentElement.classList.toggle('collapsed')));
+    $('#toggleChordKey').addEventListener('click',()=>{state.chordKey=!state.chordKey; updateStatuses(); saveState();});
+    $('#toggleBuild').addEventListener('click',()=>{state.buildMode=!state.buildMode; updateStatuses(); saveState();});
+    $('#clearBuild').addEventListener('click',()=>{state.selectedBuildNotes.clear(); renderBuildHighlights(); updateStatuses();});
+    $('#saveBuild').addEventListener('click',saveBuild);
+    $('#playCurrentChord').addEventListener('click',()=>playMidiSet(chordMidi(state.selectedRoot,currentChordType()), 1300, `${state.selectedRoot} ${currentChordType().name}`));
+    $('#setShapeOnly').addEventListener('click',()=>{state.chordKey=true; updateStatuses(); $('#nowPlaying').textContent=`Chord-Key shape set to ${currentChordType().name}. Every key now plays this shape.`; saveState();});
+    $('#assignPad').addEventListener('click',()=>{state.assignMode=!state.assignMode; state.assignLayoutMode=false; updateStatuses();});
+    $('#prevPadPage').addEventListener('click',()=>{state.padPage = state.padPage ? 0 : 1; renderPads();});
+    $('#nextPadPage').addEventListener('click',()=>{state.padPage = state.padPage ? 0 : 1; renderPads();});
+    $('#downloadPng').addEventListener('click',downloadPNG);
+    $('#assignLayoutToPad').addEventListener('click',()=>{state.assignLayoutMode=true; state.assignMode=false; updateStatuses(); $('#nowPlaying').textContent='Tap a pad to assign the viewed saved layout.';});
+
+    let draggingWheel=false;
+    const wheel=$('#pitchWheel');
+    const wheelVal=e=>{
+      const rect=wheel.getBoundingClientRect(); const y=(e.clientY-rect.top)/rect.height; return clamp((.5-y)*2.18,-1,1);
+    };
+    wheel.addEventListener('pointerdown',e=>{draggingWheel=true; wheel.setPointerCapture?.(e.pointerId); ensureAudio(); setPitchBend(wheelVal(e));});
+    wheel.addEventListener('pointermove',e=>{if(draggingWheel) setPitchBend(wheelVal(e));});
+    wheel.addEventListener('pointerup',()=>{draggingWheel=false; if(!state.bendLocked) setPitchBend(0);});
+    wheel.addEventListener('pointercancel',()=>{draggingWheel=false; if(!state.bendLocked) setPitchBend(0);});
+  }
+
+  const keyMap = {a:0,w:1,s:2,e:3,d:4,f:5,t:6,g:7,y:8,h:9,u:10,j:11,k:12,o:13,l:14,p:15,';':16,"'":17};
+  function nextPreset(dir){
+    state.presetIndex = (state.presetIndex + dir + 15) % 15; renderBanks(); saveState();
+    $('#nowPlaying').textContent = `Preset: ${state.bank} / ${currentPreset().name}`;
+  }
+  function cycleRoot(){
+    const i=ROOT_ORDER.indexOf(state.selectedRoot); state.selectedRoot=ROOT_ORDER[(i+1)%ROOT_ORDER.length]; renderChords(); previewChordOnPiano(); saveState();
+  }
+  function cycleChord(){
+    const i=chordTypes.findIndex(c=>c.id===state.selectedChordId); state.selectedChordId=chordTypes[(i+1)%chordTypes.length].id; renderChords(); previewChordOnPiano(); updateStatuses(); saveState();
+  }
+  function bindKeyboard(){
+    window.addEventListener('keydown',e=>{
+      if(e.repeat || ['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)) return;
+      const k=e.key.length===1 ? e.key.toLowerCase() : e.key;
+      if(keyMap[k] !== undefined){
+        e.preventDefault(); if(keyboardDown.has(k)) return; keyboardDown.add(k);
+        const midi = (state.baseOctave+1)*12 + keyMap[k];
+        playFromPianoMidi(midi, 'key-'+k); return;
+      }
+      if(/^[1-8]$/.test(k)){ e.preventDefault(); playPad(state.padPage*8 + Number(k)-1); return; }
+      const handled = [',','.','z','x','b','c',' ','[',']','9','0','v','n','l','m','f','?','/','r','t'].includes(k);
+      if(handled) e.preventDefault(); else return;
+      switch(k){
+        case ',': ensureAudio(); state.bendLocked=false; setPitchBend(-1); break;
+        case '.': ensureAudio(); state.bendLocked=false; setPitchBend(1); break;
+        case 'v': state.bendLocked=true; setPitchBend(1); break;
+        case 'n': state.bendLocked=true; setPitchBend(-1); break;
+        case 'l': state.bendLocked=true; setPitchBend(state.pitchBend || 1); break;
+        case 'm': state.bendLocked=false; setPitchBend(0); break;
+        case 'z': state.baseOctave=clamp(state.baseOctave-1,1,6); $('#nowPlaying').textContent=`Keyboard octave: ${state.baseOctave}`; break;
+        case 'x': state.baseOctave=clamp(state.baseOctave+1,1,6); $('#nowPlaying').textContent=`Keyboard octave: ${state.baseOctave}`; break;
+        case 'b': state.buildMode=!state.buildMode; updateStatuses(); break;
+        case 'c': state.chordKey=!state.chordKey; updateStatuses(); break;
+        case ' ': panic(); break;
+        case '[': nextPreset(-1); break;
+        case ']': nextPreset(1); break;
+        case '9': state.padPage=0; renderPads(); break;
+        case '0': state.padPage=1; renderPads(); break;
+        case 'f': $('#fullBtn').click(); break;
+        case '?': case '/': $('#guidePanel').classList.remove('collapsed'); break;
+        case 'r': cycleRoot(); break;
+        case 't': cycleChord(); break;
+      }
+    });
+    window.addEventListener('keyup',e=>{
+      const k=e.key.length===1 ? e.key.toLowerCase() : e.key;
+      if(keyMap[k] !== undefined){ keyboardDown.delete(k); releaseGroup('key-'+k); }
+      if((k===',' || k==='.') && !state.bendLocked) setPitchBend(0);
+    });
+  }
+
+  function init(){
+    loadState();
+    buildPiano(); renderSliders(); renderBanks(); renderChords(); renderPads(); renderSavedLayouts(); renderKeyboardGuide(); bindUI(); bindKeyboard(); updateStatuses(); setPitchBend(0,true);
+    window.addEventListener('resize',()=>{ previewChordOnPiano(); });
+  }
+  init();
+})();
+</script>
+</body>
+</html>
